@@ -1,0 +1,46 @@
+name: microproject-highest-mountains Grading
+'on':
+  workflow_dispatch: {}
+jobs:
+  autograding:
+    name: autograding
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Checkout
+      id: sr-checkout
+      uses: actions/checkout@v3
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: pip
+        cache-dependency-path: microproject-highest-mountains/requirements.txt
+    - run: pip install -r microproject-highest-mountains/requirements.txt
+    - name: Checkout release repository
+      id: release-checkout
+      uses: actions/checkout@v3
+      with:
+        repository: dsdiscovery/microprojects
+        ref: microproject-highest-mountains
+        path: release
+    - name: Checkout cell replacer
+      id: cell-replace-checkout
+      uses: actions/checkout@v3
+      with:
+        repository: dsdiscovery/cell-replace
+        path: cell-replace
+    - name: Run cell-replace
+      run: python cell-replace/cell-replace.py microproject-highest-mountains/microproject-highest-mountains.ipynb release/microproject-highest-mountains/microproject-highest-mountains.ipynb
+    - name: Generate Test Script
+      run: 'python3 -m jupyter2pytest microproject-highest-mountains/microproject-highest-mountains.ipynb "### TEST CASE for (.*)" microproject-highest-mountains/test_microproject-highest-mountains.py '
+    - name: Generate Grading Artifacts
+      run: cd microproject-highest-mountains && python3 test_microproject-highest-mountains.py && cd ..
+    - name: Autograding
+      id: autograding
+      uses: illinois/autograding@v4
+      with:
+        path: microproject-highest-mountains/
+        test_suite: autograding
+        step_summary: true
+        all_or_nothing: true
